@@ -4,7 +4,7 @@ import time
 from music import Music
 import discord
 from ytapi import *
-from artist_info import *
+from spotify import *
 
 # Global list containing all availble bot commands
 commandsList = ["ping: pOnG", 

@@ -5,7 +5,7 @@ from discord.ext.commands.core import command
 import lavalink
 import discord
 from lavalink.events import Event, QueueEndEvent
-from artist_info import *
+from spotify import *
 from ytapi import *
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
