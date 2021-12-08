@@ -1,0 +1,9 @@
+discord
+youtube_dl
+spotipy
+google-api-python-client
+PyNaCl
+ffmpeg
+bs4
+lavalink
+fileinput
