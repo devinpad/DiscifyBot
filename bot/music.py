@@ -5,7 +5,7 @@ from discord.ext.commands.core import command
 from discord_slash import cog_ext, SlashContext
 import lavalink
 import discord
-from artist_info import *
+from spotify import *
 from ytapi import *
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')

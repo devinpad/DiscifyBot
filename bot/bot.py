@@ -2,7 +2,7 @@ from discord.ext import commands
 from music import Music
 import discord
 from ytapi import *
-from artist_info import *
+from spotify import *
 from discord_slash import cog_ext, SlashContext
 
 # Global list containing all availble bot commands
