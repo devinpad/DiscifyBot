@@ -1,10 +1,9 @@
 from discord.ext import commands
-import os
-import time
 from music import Music
 import discord
 from ytapi import *
-from artist_info import *
+from spotify import *
+from discord_slash import cog_ext, SlashContext
 
 # Global list containing all availble bot commands
 commandsList = ["ping: pOnG", 
@@ -36,45 +35,20 @@ def created_embedded_msg(title, description, color, name, value, inline):
 	# Return embedded message
 	return embedded_msg
 
-
-#This class is used to get the body started along with lavalink, the music playing application we use.
-class Bot:
-	def __init__(self, **kwargs):
-		self.intents = discord.Intents.default()
-		self.intents.members = True
-		if "prefix" not in kwargs:
-			raise "You must provide a prefix"
-		else:
-			self.bot = commands.Bot(command_prefix = kwargs["prefix"], intents = self.intents)
-			self.bot.lavalinkpass = kwargs["lavalinkpass"]
-			self.bot.lavalinkport = kwargs["lavalinkport"]
-
-	def connect(self, token):		
-		print("Starting processes!")
-		time.sleep(5)
-		print("Running Lavalink.")
-		#Thread(target = lavarun).start()
-		time.sleep(30) # yep i intentionally used a blocking module
-		# lavalink takes a while to boot up
-		# so this is to make sure its ready when bot gets ready
-		self.bot.add_cog(init(self.bot))
-		print("-------------------------------\nRunning Bot!")
-		self.bot.run(token)
-
 #This is the main body of the bot itself. The music player functionality is within a different file.
-class init(commands.Cog):
+class bot(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
 	@commands.Cog.listener()
 	async def on_ready(self):
 		print("The bot is ready!")
-		self.bot.add_cog(Music(self.bot))
+		self.bot.load_extension("music")
 
 	# Bot Command: /helpme
 	# Purpose: Displays a message containing all available bot commands a discord server member may utilize.
-	@commands.command(pass_context=True)
-	async def helpme(self, ctx):
+	@cog_ext.cog_slash(name="helpme", description="A list of commands available.")
+	async def helpme(self, ctx: SlashContext):
 		# Initialize variables
 		title = "Help Me"
 		description = "Hi I'm Discify, your all-purpose Discord Music Bot!\nHere's what I can do if you type /(command):\n"
@@ -95,8 +69,8 @@ class init(commands.Cog):
 
 	# Bot Command: /topsongs
 	# Purpose: Displays a message containing a user entered artist's top 10 songs.
-	@commands.command(pass_context=True)
-	async def topsongs(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="topsongs", description="A list of your artists top songs.")
+	async def topsongs(self, ctx: SlashContext, *querylist):
 		# Initialize variables
 		artist = " ".join(querylist)
 		title = "Top Songs"
@@ -121,8 +95,8 @@ class init(commands.Cog):
 
 	# Bot Command: /url
 	# Purpose: Returns the song title, channel name, and YouTube url from a user entered song.
-	@commands.command(pass_context=True)
-	async def url(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="url", description="The youtube URL of the video you want.")
+	async def url(self, ctx: SlashContext, *querylist):
 		# Initialize variables
 		query = " ".join(querylist)
 		title = "Song URL"
@@ -151,8 +125,8 @@ class init(commands.Cog):
 
 	# Bot Command: /topalbums
 	# Purpose: Returns top albums from a user entered artist.
-	@commands.command(pass_context=True)
-	async def topalbums(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="topalbums", description="A list of your artists top albums.")
+	async def topalbums(self, ctx: SlashContext, *querylist):
 		# Initialize variables
 		artist = " ".join(querylist)
 		title = "Top Albums"
@@ -177,8 +151,8 @@ class init(commands.Cog):
 
 	# Bot Command: /relatedartists
 	# Purpose: Returns related artists to a user entered artist.
-	@commands.command(pass_context=True)
-	async def relatedartists(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="relatedartists", description="A list of some related artists.")
+	async def relatedartists(self, ctx: SlashContext, *querylist):
 		# Get user query
 		query = " ".join(querylist)
 		title = "Related Artists"
@@ -203,8 +177,8 @@ class init(commands.Cog):
 
 	# Bot Command: /artistPic
 	# Purpose: Returns artist pic of a user entered artist.
-	@commands.command(pass_context=True)
-	async def pic(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="pic", description="A picture of your artist.")
+	async def pic(self, ctx: SlashContext, *querylist):
 		query = " ".join(querylist)
 		msg = discord.Embed(
 			title="Artist Pic",
@@ -218,14 +192,11 @@ class init(commands.Cog):
 
 	# Bot Command: /getGenre
 	# Purpose: Returns genre of a user entered artist.
-	@commands.command(pass_context=True)
-	async def genre(self, ctx, *querylist):
+	@cog_ext.cog_slash(name="genre", description="A list of your artists genres.")
+	async def genre(self, ctx: SlashContext, *querylist):
 		query = " ".join(querylist)
 		title = "Get Genre"
-		description = 'Here is the genre information I could find from Spotify on ' + query + '! \n ' \
-																						'If you want to dive into ' \
-																						'genres, checkout this cool ' \
-																						'site https://everynoise.com/ \n'
+		description = 'Here is the genre information I could find from Spotify on ' + query + '!'
 		color = 0x1DB954
 		name = "Genres: "
 		genres = ""
@@ -237,6 +208,9 @@ class init(commands.Cog):
 		spoken_str = created_embedded_msg(title, description, color, name, genres, True)
 		await ctx.send(embed=spoken_str)
 
-	@commands.command(pass_context=True)
-	async def ping(self, ctx):
+	@cog_ext.cog_slash(name="ping", description="Pong!")
+	async def ping(self, ctx: SlashContext):
 		await ctx.send("Pong!")
+
+def setup(client):
+	client.add_cog(bot(client))

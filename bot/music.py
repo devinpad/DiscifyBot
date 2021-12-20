@@ -2,10 +2,10 @@ from discord.embeds import Embed
 from discord.ext import commands
 import re
 from discord.ext.commands.core import command
+from discord_slash import cog_ext, SlashContext
 import lavalink
 import discord
-from lavalink.events import Event, QueueEndEvent
-from artist_info import *
+from spotify import *
 from ytapi import *
 
 url_rx = re.compile(r'https?://(?:www\.)?.+')
@@ -19,7 +19,7 @@ class Music(commands.Cog):
 
         if not hasattr(bot, 'lavalink'):
             bot.lavalink = lavalink.Client(bot.user.id)
-            bot.lavalink.add_node("lava.link", self.bot.lavalinkport, self.bot.lavalinkpass, 'na', 'default-node')
+            bot.lavalink.add_node("lava.link", 80, "password", 'na', 'default-node')
             bot.add_listener(bot.lavalink.voice_update_handler, 'on_socket_response')
 
         lavalink.add_event_hook(self.track_hook)
@@ -82,8 +82,8 @@ class Music(commands.Cog):
     #     await ctx.send("it did it")
 
 
-    @commands.command(aliases=['p'])
-    async def play(self, ctx, *querys: str):
+    @cog_ext.cog_slash(name="play", description="Play your favorite song!")
+    async def play(self, ctx: SlashContext, *querys: str):
         query = " ".join(querys)
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         query = query.strip('<>')
@@ -136,8 +136,8 @@ class Music(commands.Cog):
                        
 
     #Disconnects the player from the voice channel and clears its queue.
-    @commands.command(aliases=['dc'])
-    async def disconnect(self, ctx):
+    @cog_ext.cog_slash(name="disconnect", description="Kick the bot out.")
+    async def disconnect(self, ctx:SlashContext):
         """ Disconnects the player from the voice channel and clears its queue. """
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
 
@@ -153,14 +153,14 @@ class Music(commands.Cog):
         await ctx.send('*⃣ | Disconnected.')
 
     #Pauses the song. To unpause just do /play
-    @commands.command()
-    async def pause(self, ctx):
+    @cog_ext.cog_slash(name="pause", description="Pauses the song.")
+    async def pause(self, ctx:SlashContext):
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         if player.is_playing:
             await player.set_pause(True)
       
-    @commands.command()
-    async def info(self, ctx, *querys:str):
+    @cog_ext.cog_slash(name="info", description="Gives you info on your favorite song and artist.")
+    async def info(self, ctx:SlashContext, *querys:str):
         query = " ".join(querys)
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         query = query.strip('<>')
@@ -268,21 +268,22 @@ class Music(commands.Cog):
 
 
     #Clears the queue and stops the song
-    @commands.command()
-    async def clear(self, ctx):
+    @cog_ext.cog_slash(name="clear", description="Clears the queue.")
+    async def clear(self, ctx:SlashContext):
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         player.queue.clear()
         await player.stop()
         await ctx.send("Queue Cleared")
 
     #Skips the current song, if possible.
-    @commands.command()
-    async def skip(self, ctx):
+    @cog_ext.cog_slash(name="skip", description="Skips the current song.")
+    async def skip(self, ctx:SlashContext):
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         await player.skip()
+        await ctx.send("Skipped!")
 
-    @commands.command()
-    async def queue(self, ctx):
+    @cog_ext.cog_slash(name="queue", description="View the queue.")
+    async def queue(self, ctx:SlashContext):
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         embed = discord.Embed(color=discord.Color.blurple())
         embed.title = "Queue:"
@@ -299,8 +300,8 @@ class Music(commands.Cog):
             embed.description = desc
             await ctx.send(embed=embed)
 
-    @commands.command()
-    async def remove(self, ctx, rem: int):
+    @cog_ext.cog_slash(name="remove", description="Removes a song of your choice from the queue.")
+    async def remove(self, ctx:SlashContext, rem: int):
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)
         if rem >= 1:
             rem -= 1
@@ -316,3 +317,37 @@ class Music(commands.Cog):
                 await ctx.send("Song removed.")
             except IndexError:
                 await ctx.send("Nothing to remove.")
+
+    @cog_ext.cog_slash(name="shuffle", description="Turns queue shuffling on.")
+    async def shuffle(self, ctx:SlashContext):
+        player = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        shuf = player.shuffle
+        await player.set_shuffle(not shuf)
+        if not shuf == True:
+            await ctx.send("Now shuffling!")
+        else:
+            await ctx.send("No longer shuffling.")
+
+    @cog_ext.cog_slash(name="move", description="Moves a song to the top of the queue.")
+    async def move(self, ctx:SlashContext, number):
+        player = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        if number >= 1:
+            number -= 1
+        else:
+            await ctx.send("Nothing to move.")
+            return
+        if player.queue == []:
+            await ctx.send("No queue found.")
+        else:
+            try:
+                track = player.queue[number].track
+                player.queue.pop(number)
+                await player.add(requester=ctx.author.id, track=track, index=0)
+                await ctx.invoke(self.bot.get_command('queue'))
+                await ctx.send("Song moved.")
+            except IndexError:
+                await ctx.send("Nothing to remove.")
+
+
+def setup(client):
+    client.add_cog(Music(client))
